@@ -3,8 +3,8 @@ import whisper
 from pathlib import Path
 from typing import List, Dict
 
-# Use "tiny" or "base" for speed and low-RAM Render cloud environments
-MODEL_NAME = os.getenv("WHISPER_MODEL", "base")
+# Use "tiny" by default for blazing speed and low-RAM Render free cloud tier (512MB RAM)
+MODEL_NAME = os.getenv("WHISPER_MODEL", "tiny")
 _model = None
 
 def get_whisper_model():
@@ -42,7 +42,7 @@ PlayResY: 1280
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: ReelCaptions,Segoe UI,34,&H00FFFFFF,&H000000FF,&H00000000,&H99000000,-1,0,0,0,100,100,0,0,3,4,0,2,30,30,260,1
+Style: ReelCaptions,DejaVu Sans,32,&H00FFFFFF,&H000000FF,&H00000000,&H99000000,-1,0,0,0,100,100,0,0,3,4,0,2,30,30,260,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

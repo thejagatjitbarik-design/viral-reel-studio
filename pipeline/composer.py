@@ -24,20 +24,29 @@ def get_media_duration(file_path: Path) -> float:
     except Exception:
         return 30.0
 
-def compose_from_raw_video(raw_video: Path, output_video: Path, temp_dir: Path) -> Path:
+def compose_from_raw_video(raw_video: Path, output_video: Path, temp_dir: Path, task_id: str = None, status_fn = None) -> Path:
     temp_dir.mkdir(parents=True, exist_ok=True)
     output_video.parent.mkdir(parents=True, exist_ok=True)
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 15, "Extracting audio from raw video...")
+        
     # 1. Extract audio
     audio_wav = temp_dir / "extracted_audio.wav"
     subprocess.run([FFMPEG_CMD, "-y", "-i", str(raw_video), "-ar", "16000", "-ac", "1", str(audio_wav)], check=True)
     
     duration = get_media_duration(raw_video)
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 35, "Transcribing speech & generating captions (Whisper AI)...")
+        
     # 2. Transcribe to ASS subtitles
     ass_file = temp_dir / "captions.ass"
     segments = transcribe_audio_to_ass(audio_wav, ass_file)
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 60, "Generating glassmorphism motion cards & sound effects...")
+        
     # 3. Generate dynamic cards
     card1 = create_graphic_card(temp_dir / "card1.png", "OVERVIEW", "Must-Know AI Tools", "Step-by-step master roadmap", "Core 3 Tools to Scale")
     card2 = create_graphic_card(temp_dir / "card2.png", "AUTOMATION", "n8n Workflow Engine", "Eliminate repetitive tasks", "100% Autopilot System", accent_rgb=(249, 115, 22))
@@ -69,6 +78,9 @@ def compose_from_raw_video(raw_video: Path, output_video: Path, temp_dir: Path) 
         "[a_voice][a_sfx]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
     )
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 80, "Assembling & encoding final 9:16 viral reel...")
+        
     cmd = [
         FFMPEG_CMD, "-y",
         "-i", str(raw_video),
@@ -80,8 +92,9 @@ def compose_from_raw_video(raw_video: Path, output_video: Path, temp_dir: Path) 
         "-map", "[vout]",
         "-map", "[aout]",
         "-c:v", "libx264",
-        "-preset", "faster",
-        "-crf", "19",
+        "-preset", "veryfast",
+        "-threads", "2",
+        "-crf", "20",
         "-c:a", "aac",
         "-b:a", "192k",
         str(output_video)
@@ -89,10 +102,13 @@ def compose_from_raw_video(raw_video: Path, output_video: Path, temp_dir: Path) 
     subprocess.run(cmd, check=True)
     return output_video
 
-def compose_from_prompt(prompt: str, output_video: Path, temp_dir: Path, voice: str = "en-US-ChristopherNeural") -> Path:
+def compose_from_prompt(prompt: str, output_video: Path, temp_dir: Path, voice: str = "en-US-ChristopherNeural", task_id: str = None, status_fn = None) -> Path:
     temp_dir.mkdir(parents=True, exist_ok=True)
     output_video.parent.mkdir(parents=True, exist_ok=True)
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 15, "Generating neural voiceover...")
+        
     # 1. Script synthesis from prompt
     script = (
         f"Here is what you need to know about {prompt}. "
@@ -105,10 +121,16 @@ def compose_from_prompt(prompt: str, output_video: Path, temp_dir: Path, voice: 
     create_voiceover(script, voice_file, voice=voice)
     duration = get_media_duration(voice_file)
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 40, "Generating captions & timing subtitles...")
+        
     # 2. Transcribe voiceover for synchronized captions
     ass_file = temp_dir / "captions.ass"
     transcribe_audio_to_ass(voice_file, ass_file)
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 65, "Rendering motion graphic cards & audio effects...")
+        
     # 3. Create motion graphics cards
     card1 = create_graphic_card(temp_dir / "card1.png", "INSIGHT", prompt[:30], "Key Breakthrough Overview", "Scale Your Workflow")
     card2 = create_graphic_card(temp_dir / "card2.png", "AUTOMATION", "Zero-Code Systems", "Automate in minutes", "100% Autopilot Engine", accent_rgb=(249, 115, 22))
@@ -127,7 +149,6 @@ def compose_from_prompt(prompt: str, output_video: Path, temp_dir: Path, voice: 
     
     ass_escaped = str(ass_file).replace("\\", "/").replace(":", "\\:")
     
-    # Generates a sleek 720x1280 animated background canvas + 3 motion cards + captions
     filter_complex = (
         f"color=c=0x0f172a:s=720x1280:d={duration}[bg];"
         f"[bg][1:v]overlay=x=(W-w)/2:y='{y_c1}':enable='between(t,{t1},{t1+5.2})'[v1];"
@@ -139,6 +160,9 @@ def compose_from_prompt(prompt: str, output_video: Path, temp_dir: Path, voice: 
         "[a_voice][a_sfx]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
     )
     
+    if status_fn and task_id:
+        status_fn(task_id, "processing", 85, "Encoding final AI reel...")
+        
     cmd = [
         FFMPEG_CMD, "-y",
         "-i", str(voice_file),
@@ -150,8 +174,9 @@ def compose_from_prompt(prompt: str, output_video: Path, temp_dir: Path, voice: 
         "-map", "[vout]",
         "-map", "[aout]",
         "-c:v", "libx264",
-        "-preset", "faster",
-        "-crf", "19",
+        "-preset", "veryfast",
+        "-threads", "2",
+        "-crf", "20",
         "-c:a", "aac",
         "-b:a", "192k",
         str(output_video)

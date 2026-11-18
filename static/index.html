@@ -143,6 +143,45 @@
             }
         });
 
+        let pollTimer = null;
+
+        function startPolling(taskId) {
+            if (pollTimer) clearInterval(pollTimer);
+            
+            pollTimer = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/task-status/' + taskId);
+                    if (!res.ok) return;
+                    
+                    const data = await res.json();
+                    
+                    if (data.progress !== undefined) {
+                        document.getElementById('progress-bar').style.width = data.progress + '%';
+                    }
+                    if (data.message) {
+                        document.getElementById('status-text').lastElementChild.innerText = data.message;
+                    }
+                    if (data.status) {
+                        document.getElementById('status-step').innerText = data.status.toUpperCase();
+                    }
+
+                    if (data.status === 'completed') {
+                        clearInterval(pollTimer);
+                        pollTimer = null;
+                        hideStatus();
+                        showVideo(data.video_url);
+                    } else if (data.status === 'failed') {
+                        clearInterval(pollTimer);
+                        pollTimer = null;
+                        hideStatus();
+                        alert('Error during processing:\n' + (data.error || 'Pipeline failed'));
+                    }
+                } catch (e) {
+                    console.error('Polling status error:', e);
+                }
+            }, 1800);
+        }
+
         async function handleUploadSubmit() {
             if (!fileInput.files.length) {
                 alert('Please select a video file first!');
@@ -152,19 +191,26 @@
             const formData = new FormData();
             formData.append('file', file);
 
-            showStatus('Uploading & running AI pipeline (Whisper + Motion Graphics + SFX)...');
+            showStatus('Uploading video to studio server...', 10);
             try {
                 const res = await fetch('/api/process-video', { method: 'POST', body: formData });
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Server returned HTTP ${res.status}: ${errorText.substring(0, 150)}`);
+                }
+                
                 const data = await res.json();
-                if (data.success) {
-                    showVideo(data.video_url);
+                if (data.success && data.task_id) {
+                    showStatus('Starting AI pipeline (Whisper + Motion Graphics + SFX)...', 20);
+                    startPolling(data.task_id);
                 } else {
-                    alert('Error: ' + (data.detail || 'Rendering failed'));
+                    hideStatus();
+                    alert('Error: ' + (data.detail || 'Failed to initialize processing job'));
                 }
             } catch (err) {
-                alert('Server error: ' + err.message);
-            } finally {
                 hideStatus();
+                alert('Server Error:\n' + err.message);
             }
         }
 
@@ -180,25 +226,34 @@
             formData.append('prompt', prompt);
             formData.append('voice', voice);
 
-            showStatus('Synthesizing script, generating voiceover & rendering motion graphics...');
+            showStatus('Synthesizing script and AI voiceover...', 10);
             try {
                 const res = await fetch('/api/generate-from-prompt', { method: 'POST', body: formData });
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Server returned HTTP ${res.status}: ${errorText.substring(0, 150)}`);
+                }
+
                 const data = await res.json();
-                if (data.success) {
-                    showVideo(data.video_url);
+                if (data.success && data.task_id) {
+                    showStatus('Generating voiceover, captions & motion graphics...', 20);
+                    startPolling(data.task_id);
                 } else {
-                    alert('Error: ' + (data.detail || 'Rendering failed'));
+                    hideStatus();
+                    alert('Error: ' + (data.detail || 'Failed to initialize generation'));
                 }
             } catch (err) {
-                alert('Server error: ' + err.message);
-            } finally {
                 hideStatus();
+                alert('Server Error:\n' + err.message);
             }
         }
 
-        function showStatus(msg) {
+        function showStatus(msg, initialProgress = 15) {
             document.getElementById('status-container').classList.remove('hidden');
             document.getElementById('status-text').lastElementChild.innerText = msg;
+            document.getElementById('progress-bar').style.width = initialProgress + '%';
+            document.getElementById('status-step').innerText = 'RUNNING';
         }
 
         function hideStatus() {
