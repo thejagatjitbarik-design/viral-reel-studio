@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viral Reel Studio — AI Video Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">⚡</span>
+                <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-blue-400 via-indigo-300 to-amber-300 bg-clip-text text-transparent">Viral Reel Studio</span>
+            </div>
+            <div class="flex items-center space-x-2 text-xs font-semibold bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-full border border-slate-700">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>API Live</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-5xl mx-auto w-full p-6 py-10 flex flex-col md:flex-row gap-8">
+        
+        <!-- Controls Column -->
+        <div class="flex-1 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
+            
+            <!-- Tab Buttons -->
+            <div class="grid grid-cols-2 p-1 bg-slate-800/80 rounded-xl mb-6">
+                <button id="tab-upload-btn" onclick="switchTab('upload')" class="py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white transition-all shadow">
+                    📁 Upload Raw Video
+                </button>
+                <button id="tab-prompt-btn" onclick="switchTab('prompt')" class="py-2.5 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all">
+                    ✨ Prompt to Reel
+                </button>
+            </div>
+
+            <!-- Tab 1: Upload Raw Video -->
+            <div id="tab-upload" class="flex-1 flex flex-col">
+                <p class="text-xs text-slate-400 mb-3">Auto-transcribes, generates keyword pill captions, adds animated motion cards, and sound effects.</p>
+                
+                <div id="drop-zone" class="flex-1 border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-950/40 min-h-[220px]">
+                    <span class="text-4xl mb-3">🎬</span>
+                    <p class="text-sm font-semibold text-slate-200">Drag & drop your video here</p>
+                    <p class="text-xs text-slate-500 mt-1">MP4, MOV up to 100MB</p>
+                    <input type="file" id="video-file-input" accept="video/*" class="hidden">
+                    <p id="selected-file-name" class="mt-3 text-xs text-blue-400 font-semibold"></p>
+                </div>
+
+                <button id="process-upload-btn" onclick="handleUploadSubmit()" class="mt-6 w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2">
+                    <span>🚀 Generate Viral Reel</span>
+                </button>
+            </div>
+
+            <!-- Tab 2: Prompt to Reel -->
+            <div id="tab-prompt" class="hidden flex-1 flex flex-col">
+                <p class="text-xs text-slate-400 mb-3">Type any topic or script idea. Our engine writes the script, speaks with AI Voiceover, and generates motion cards.</p>
+                
+                <label class="text-xs font-semibold text-slate-300 mb-1.5 block">Reel Topic / Concept Prompt:</label>
+                <textarea id="prompt-input" rows="4" class="w-full bg-slate-950/60 border border-slate-700 rounded-xl p-3.5 text-sm focus:outline-none focus:border-blue-500 text-slate-100" placeholder="e.g. 3 AI Tools That Replace Video Editors in 2026..."></textarea>
+                
+                <label class="text-xs font-semibold text-slate-300 mt-4 mb-1.5 block">AI Voice Actor:</label>
+                <select id="voice-select" class="w-full bg-slate-950/60 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 text-slate-200">
+                    <option value="en-US-ChristopherNeural">Christopher (Deep English Male)</option>
+                    <option value="en-US-AvaNeural">Ava (Energetic English Female)</option>
+                    <option value="hi-IN-MadhurNeural">Madhur (Hindi/Hinglish Male)</option>
+                    <option value="hi-IN-SwaraNeural">Swara (Hindi Female)</option>
+                </select>
+
+                <button id="process-prompt-btn" onclick="handlePromptSubmit()" class="mt-6 w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2">
+                    <span>✨ Auto-Generate Reel</span>
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="status-container" class="hidden mt-6 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <div class="flex justify-between items-center text-xs font-semibold mb-2">
+                    <span id="status-text" class="text-blue-400 flex items-center gap-2">
+                        <svg class="animate-spin h-3.5 w-3.5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                        <span>Rendering pipeline running...</span>
+                    </span>
+                    <span id="status-step" class="text-slate-500">Processing</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-500 h-full w-2/3 animate-pulse"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Video Player / Export Column -->
+        <div class="w-full md:w-[380px] bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center">
+            <h3 class="text-sm font-bold text-slate-300 mb-4 self-start">📱 Final Reel Preview</h3>
+            
+            <!-- Video Container (9:16 aspect ratio) -->
+            <div class="w-full aspect-[9/16] bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center relative shadow-inner">
+                <video id="preview-player" controls class="w-full h-full object-cover hidden"></video>
+                <div id="empty-state" class="text-center p-6 text-slate-600">
+                    <span class="text-5xl block mb-2 opacity-50">📱</span>
+                    <p class="text-xs font-medium">Your rendered 9:16 vertical video will appear here</p>
+                </div>
+            </div>
+
+            <a id="download-btn" href="#" download class="hidden mt-4 w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl text-center shadow-lg transition-all flex items-center justify-center gap-2">
+                <span>⬇ Download Final Reel</span>
+            </a>
+        </div>
+
+    </main>
+
+    <script>
+        let currentTab = 'upload';
+        const fileInput = document.getElementById('video-file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const selectedFileName = document.getElementById('selected-file-name');
+
+        function switchTab(tab) {
+            currentTab = tab;
+            if (tab === 'upload') {
+                document.getElementById('tab-upload').classList.remove('hidden');
+                document.getElementById('tab-prompt').classList.add('hidden');
+                document.getElementById('tab-upload-btn').className = 'py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white transition-all shadow';
+                document.getElementById('tab-prompt-btn').className = 'py-2.5 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all';
+            } else {
+                document.getElementById('tab-upload').classList.add('hidden');
+                document.getElementById('tab-prompt').classList.remove('hidden');
+                document.getElementById('tab-prompt-btn').className = 'py-2.5 text-sm font-semibold rounded-lg bg-amber-500 text-white transition-all shadow';
+                document.getElementById('tab-upload-btn').className = 'py-2.5 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all';
+            }
+        }
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFileName.innerText = '✔ Selected: ' + e.target.files[0].name;
+            }
+        });
+
+        async function handleUploadSubmit() {
+            if (!fileInput.files.length) {
+                alert('Please select a video file first!');
+                return;
+            }
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showStatus('Uploading & running AI pipeline (Whisper + Motion Graphics + SFX)...');
+            try {
+                const res = await fetch('/api/process-video', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showVideo(data.video_url);
+                } else {
+                    alert('Error: ' + (data.detail || 'Rendering failed'));
+                }
+            } catch (err) {
+                alert('Server error: ' + err.message);
+            } finally {
+                hideStatus();
+            }
+        }
+
+        async function handlePromptSubmit() {
+            const prompt = document.getElementById('prompt-input').value.trim();
+            const voice = document.getElementById('voice-select').value;
+            if (!prompt) {
+                alert('Please enter a topic prompt!');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            formData.append('voice', voice);
+
+            showStatus('Synthesizing script, generating voiceover & rendering motion graphics...');
+            try {
+                const res = await fetch('/api/generate-from-prompt', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showVideo(data.video_url);
+                } else {
+                    alert('Error: ' + (data.detail || 'Rendering failed'));
+                }
+            } catch (err) {
+                alert('Server error: ' + err.message);
+            } finally {
+                hideStatus();
+            }
+        }
+
+        function showStatus(msg) {
+            document.getElementById('status-container').classList.remove('hidden');
+            document.getElementById('status-text').lastElementChild.innerText = msg;
+        }
+
+        function hideStatus() {
+            document.getElementById('status-container').classList.add('hidden');
+        }
+
+        function showVideo(url) {
+            const player = document.getElementById('preview-player');
+            const emptyState = document.getElementById('empty-state');
+            const dlBtn = document.getElementById('download-btn');
+
+            player.src = url;
+            player.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            dlBtn.href = url;
+            dlBtn.classList.remove('hidden');
+            player.play();
+        }
+    </script>
+</body>
+</html>
